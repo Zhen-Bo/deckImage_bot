@@ -5,6 +5,8 @@ import json
 import io
 import os
 from dotenv import load_dotenv
+import qrcode
+from PIL import Image
 
 load_dotenv()
 bot = commands.Bot(command_prefix="&")
@@ -30,6 +32,27 @@ async def image(ctx, msg):
         image = requests.get(deck_image, headers={"referer": hash_url})
         pic = discord.File(fp=io.BytesIO(image.content), filename="image.png")
         await ctx.send(file=pic)
+    except:
+        await ctx.send("error")
+
+
+@bot.command()
+async def qr(ctx, msg):
+    try:
+        if len(msg) == 4:
+            reqUrl = f"https://shadowverse-portal.com/api/v1/deck/import?format=json&deck_code={msg}"
+            deck_hash = json.loads(requests.request("GET", reqUrl).text)["data"]["hash"]
+            hash_url = f"https://shadowverse-portal.com/deck/{deck_hash}?lang=zh-tw"
+        else:
+            deck_hash = msg.split("?")[0].split("/")[-1]
+            reqUrl = f"https://shadowverse-portal.com/api/v1/deck?format=json&lang=zh-tw&hash={deck_hash}"
+            info = json.loads(requests.request("GET", reqUrl).text)["data"]["deck"]
+            hash_url = msg
+        img = qrcode.make(hash_url)
+        with io.BytesIO() as image_binary:
+            img.save(image_binary, "PNG")
+            image_binary.seek(0)
+            await ctx.send(file=discord.File(fp=image_binary, filename="image.png"))
     except:
         await ctx.send("error")
 
