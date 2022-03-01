@@ -30,6 +30,9 @@ async def image(ctx, msg):
         deck_image = "https://shadowverse-portal.com/image/1?lang=zh-tw"
         hash_url = f"https://shadowverse-portal.com/deck/{deck_hash}"
         image = requests.get(deck_image, headers={"referer": hash_url})
+        if b"<!DOCTYPE html>" in image.content:
+            hash_url = f"https://shadowverse-portal.com/deck_co/{deck_hash}"
+            image = requests.get(deck_image, headers={"referer": hash_url})
         pic = discord.File(fp=io.BytesIO(image.content), filename="image.png")
         await ctx.send(file=pic)
     except:
@@ -41,12 +44,16 @@ async def qr(ctx, msg):
     try:
         if len(msg) == 4:
             reqUrl = f"https://shadowverse-portal.com/api/v1/deck/import?format=json&deck_code={msg}"
-            deck_hash = json.loads(requests.request("GET", reqUrl).text)["data"]["hash"]
-            hash_url = f"https://shadowverse-portal.com/deck/{deck_hash}?lang=zh-tw"
+            json_obj = json.loads(requests.request("GET", reqUrl).text)
+            deck_hash = json_obj["data"]["hash"]
+            sub_clan = json_obj["data"]["sub_clan"]
+            if sub_clan == 0:
+                hash_url = f"https://shadowverse-portal.com/deck/{deck_hash}?lang=zh-tw"
+            else:
+                hash_url = (
+                    f"https://shadowverse-portal.com/deck_co/{deck_hash}?lang=zh-tw"
+                )
         else:
-            deck_hash = msg.split("?")[0].split("/")[-1]
-            reqUrl = f"https://shadowverse-portal.com/api/v1/deck?format=json&lang=zh-tw&hash={deck_hash}"
-            info = json.loads(requests.request("GET", reqUrl).text)["data"]["deck"]
             hash_url = msg
         img = qrcode.make(hash_url)
         with io.BytesIO() as image_binary:
